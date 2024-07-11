@@ -1,0 +1,77 @@
+package com.dev.LiterAlura_Challenge.Model.Services.EntityService;
+
+import com.dev.LiterAlura_Challenge.Model.Entities.Author;
+import com.dev.LiterAlura_Challenge.Model.Entities.AuthorDTO;
+import com.dev.LiterAlura_Challenge.Model.Entities.Book;
+import com.dev.LiterAlura_Challenge.Model.Entities.BookDTO;
+import com.dev.LiterAlura_Challenge.Model.Repositories.AuthorRepository;
+import com.dev.LiterAlura_Challenge.Model.Utilities.CustomPrinter;
+import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class AuthorService {
+
+    @Autowired
+    private AuthorRepository authorRepository;
+
+    @Transactional
+    public void findByNameContaingAndPrint(String name) {
+        List<Author> authors = authorRepository.findByNameContaining(name);
+        CustomPrinter.printAuthors(authors);
+    }
+
+    @Transactional
+    public void findAllAndPrint() {
+        CustomPrinter.printAuthors(authorRepository.findAll());
+    }
+
+    @Transactional
+    public void findLivingsInPeriodAndPrint(int year) {
+        List<Author> authors = authorRepository.findByYearOfBirthLessThanAndYearOfDeathGreaterThanOrYearOfDeathIsNull(year, year);
+        CustomPrinter.printAuthors(authors);
+    }
+
+    @Transactional
+    public Book addAuthorToBook(Book book, BookDTO bookDTO) {
+        List<Author> authors = receiveAuthorsFromBookDTO(bookDTO);
+        for (Author author : authors) {
+            book.addAuthor(author);
+        }
+        return book;
+    }
+
+    public List<Author> receiveAuthorsFromBookDTO(BookDTO bookDTO) {
+        List<AuthorDTO> authorsDTO = List.of(bookDTO.authors());
+        List<Author> authors = new ArrayList<>();
+
+        for (AuthorDTO authorDTO : authorsDTO) {
+            Author author = createOrGetAuthor(authorDTO);
+            authors.add(author);
+        }
+
+        return authors;
+    }
+
+    private Author createOrGetAuthor(AuthorDTO authorDTO) {
+        if (!authorRepository.existsByName(authorDTO.name())) {
+            return createNewAuthor(authorDTO);
+        } else {
+            return authorRepository.findByName(authorDTO.name()).orElseThrow();
+        }
+    }
+
+    private Author createNewAuthor(AuthorDTO authorDTO) {
+        Author author = new Author();
+        author.setName(authorDTO.name());
+        author.setYearOfBirth(authorDTO.birthYear());
+        author.setYearOfDeath(authorDTO.deathYear());
+        return authorRepository.save(author);
+    }
+
+
+}
